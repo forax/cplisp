@@ -7,7 +7,7 @@ so if you want to run a .class, you need to get the source of the project amber
   hg clone http://hg.openjdk.java.net/amber/amber
 ```
 then update to move to the condy branch
-``|
+```
   hg update condy
 ```
 then compile the whole jdk
