@@ -1,5 +1,5 @@
 # cplisp
-A Lisp (Scheme like) that is able to compile itself into the constant pool of a Java .class
+A Lisp (Scheme like) that is able to compile part of itself into the constant pool of a Java .class
 
 It uses the new constant dynamic (condy) constant pool constant,
 so if you want to run a .class, you need to get the source of the project amber
