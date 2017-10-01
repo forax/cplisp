@@ -49,6 +49,8 @@ Using javap, you can see how the expressions are encoded in the constant pool
 ```
   amber/build/linux-x86_64-normal-server-release/jdk/bin/javap -verbose -c -cp .:target/main/artifact/cplisp.jar foo
 ```
+
+```
   ...
   #15 = Utf8               bsm
   #16 = Utf8               (Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
