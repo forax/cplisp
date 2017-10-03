@@ -38,16 +38,16 @@ first run cplisp, then ask to compile with the function compile
 ```
   (compile foo (print hello cplisp))
 ```
-it will create a file foo.class
+it will create a self contained class foo.class on the disk
 
 then you can run the generated foo.class like this
 ```
-  amber/build/linux-x86_64-normal-server-release/jdk/bin/java -cp .:target/main/artifact/cplisp.jar foo
+  amber/build/linux-x86_64-normal-server-release/jdk/bin/java foo
 ```
 
 Using javap, you can see how the expressions are encoded in the constant pool
 ```
-  amber/build/linux-x86_64-normal-server-release/jdk/bin/javap -verbose -c -cp .:target/main/artifact/cplisp.jar foo
+  amber/build/linux-x86_64-normal-server-release/jdk/bin/javap -verbose -c foo.class
 ```
 
 ```
