@@ -52,45 +52,41 @@ Using javap, you can see how the expressions are encoded in the constant pool
 
 ```
   ...
-  #15 = Utf8               bsm
-  #16 = Utf8               (Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
-  #17 = NameAndType        #15:#16        // bsm:(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
-  #18 = Methodref          #14.#17        // fr/umlv/cplisp/CpLisp.bsm:(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
-  #19 = MethodHandle       6:#18          // REF_invokeStatic fr/umlv/cplisp/CpLisp.bsm:(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
-  #20 = Utf8               Ljava/lang/Object;
-  #21 = NameAndType        #9:#20         // eval:Ljava/lang/Object;
-  #22 = ConstantDynamic    #0:#21         // #0:eval:Ljava/lang/Object;
-  #23 = Utf8               cplisp
-  #24 = String             #23            // cplisp
-  #25 = ConstantDynamic    #1:#21         // #1:eval:Ljava/lang/Object;
-  #26 = NameAndType        #7:#20         // print:Ljava/lang/Object;
-  #27 = ConstantDynamic    #2:#26         // #2:print:Ljava/lang/Object;
-  #28 = Utf8               Code
-  #29 = Utf8               BootstrapMethods
+    #14 = String             #13            // cplisp
+  #15 = Utf8               fr/umlv/cplisp/CpLisp
+  #16 = Class              #15            // fr/umlv/cplisp/CpLisp
+  #17 = Utf8               bsm
+  #18 = Utf8               (Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+  #19 = NameAndType        #17:#18        // bsm:(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+  #20 = Methodref          #16.#19        // fr/umlv/cplisp/CpLisp.bsm:(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+  #21 = MethodHandle       6:#20          // REF_invokeStatic fr/umlv/cplisp/CpLisp.bsm:(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+  #22 = Utf8               Ljava/lang/Object;
+  #23 = NameAndType        #9:#22         // print:Ljava/lang/Object;
+  #24 = ConstantDynamic    #0:#23         // #0:print:Ljava/lang/Object;
+  #25 = NameAndType        #7:#22         // eval:Ljava/lang/Object;
+  #26 = ConstantDynamic    #1:#25         // #1:eval:Ljava/lang/Object;
+  #27 = Utf8               Code
+  #28 = Utf8               BootstrapMethods
 {
   public static void main(java.lang.String[]);
     descriptor: ([Ljava/lang/String;)V
     flags: (0x0009) ACC_PUBLIC, ACC_STATIC
     Code:
       stack=1, locals=1, args_size=1
-         0: ldc           #27                 // ConstantDynamic #2:print:Ljava/lang/Object;
+         0: ldc           #26                 // ConstantDynamic #1:eval:Ljava/lang/Object;
          2: pop
          3: return
 }
 BootstrapMethods:
-  0: #19 REF_invokeStatic fr/umlv/cplisp/CpLisp.bsm:(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+  0: #21 REF_invokeStatic fr/umlv/cplisp/CpLisp.bsm:(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
     Method arguments:
-      #10 eval
+      #10 print
       #12 hello
-  1: #19 REF_invokeStatic fr/umlv/cplisp/CpLisp.bsm:(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+      #14 cplisp
+  1: #21 REF_invokeStatic fr/umlv/cplisp/CpLisp.bsm:(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
     Method arguments:
-      #10 eval
-      #24 cplisp
-  2: #19 REF_invokeStatic fr/umlv/cplisp/CpLisp.bsm:(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
-    Method arguments:
-      #8 print
-      #22 #0:eval:Ljava/lang/Object;
-      #25 #1:eval:Ljava/lang/Object;
+      #8 eval
+      #24 #0:print:Ljava/lang/Object;
 ```
 
 One interesting thing is that by default (thanks to ASM) common sub expressions will be encoded only once in the constant pool. Which mean that the execution of all functions is considered as side effect free, so by example, the following code will print 5

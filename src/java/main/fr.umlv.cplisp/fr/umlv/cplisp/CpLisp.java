@@ -439,10 +439,7 @@ public class CpLisp {
     private static Object constant(Object o) {
       String function;
       Stream<?> stream;
-      if (o instanceof String) {
-        function = "eval";
-        stream = Stream.of(o);
-      } else if (o instanceof List) {
+      if (o instanceof List) {
         List<?> list = (List<?>)o;
         Object first;
         if (list.isEmpty() || !((first = list.get(0)) instanceof String)) {
@@ -469,7 +466,8 @@ public class CpLisp {
       mv.visitCode();
       
       for(int i = 1; i < args.size(); i++) {
-        mv.visitLdcInsn(constant(args.get(i)));
+        Object arg = args.get(i);
+        mv.visitLdcInsn(constant(List.of("eval", arg)));
         mv.visitInsn(POP);
       }
       
@@ -490,7 +488,7 @@ public class CpLisp {
   }
   
   public static Object bsm(Lookup lookup, String name, Class<?> type, Object fun, Object... args) throws Throwable {
-    return call(fun, Arrays.asList(args));
+    return call(fun, new ArrayList<>(Arrays.asList(args)));
   }
   
   public static @Builtin void compile(List<?> args) {
