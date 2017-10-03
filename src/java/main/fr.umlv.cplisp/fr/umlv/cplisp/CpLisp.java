@@ -22,6 +22,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.WrongMethodTypeException;
 import java.lang.reflect.Constructor;
@@ -47,12 +48,12 @@ import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 
 public class CpLisp {
-  static class Lookup {
-    final Lookup lookup;
+  static class Scope {
+    final Scope parent;
     private final HashMap<String, Object> map = new HashMap<>();
     
-    public Lookup(Lookup lookup) {
-      this.lookup = lookup;
+    public Scope(Scope parent) {
+      this.parent = parent;
     }
 
     public void put(String name, Object o) {
@@ -60,13 +61,13 @@ public class CpLisp {
     }
     
     public Object get(String name) {
-      Lookup scope = this;
+      Scope scope = this;
       do {
         Object o = scope.map.get(name);
         if (o != null) {
           return o;
         }
-        scope = scope.lookup;
+        scope = scope.parent;
       } while (scope != null);
       return null;
     }
@@ -192,9 +193,9 @@ public class CpLisp {
   
   static final String EOF = "";
   private static final Parser PARSER = new Parser(new Tokenizer(new InputStreamReader(System.in)));
-  static final ThreadLocal<Lookup> ENV;
+  static final ThreadLocal<Scope> ENV;
   static {
-    Lookup global = new Lookup(null);
+    Scope global = new Scope(null);
     for(Method m: CpLisp.class.getMethods()) {
       Builtin builtin = m.getAnnotation(Builtin.class);
       if (builtin == null) {
@@ -207,14 +208,14 @@ public class CpLisp {
     }
     ENV = new ThreadLocal<>() {
       @Override
-      protected Lookup initialValue() {
-        return new Lookup(global);
+      protected Scope initialValue() {
+        return new Scope(global);
       }
     };
   }
   
   private static MethodHandle[] accessors(Field field) {
-    MethodHandles.Lookup lookup = MethodHandles.lookup();
+    Lookup lookup = MethodHandles.lookup();
     try {
       if (Modifier.isFinal(field.getModifiers())) {
         return new MethodHandle[] { lookup.unreflectGetter(field) };
@@ -298,35 +299,35 @@ public class CpLisp {
     static {
       try {
         INTERPRET = MethodHandles.lookup().findStatic(Interpreter.class, "interpret",
-            methodType(Object.class, List.class, List.class, Lookup.class, List.class));
+            methodType(Object.class, List.class, List.class, Scope.class, List.class));
       } catch (NoSuchMethodException | IllegalAccessException e) {
         throw new AssertionError(e);
       }
     }
     
-    static MethodHandle asInterpret(List<?> parameters, List<?> body, Lookup scope) {
+    static MethodHandle asInterpret(List<?> parameters, List<?> body, Scope scope) {
       return MethodHandles.insertArguments(INTERPRET, 0, parameters, body, scope);
     }
     
     @SuppressWarnings("unused")
-    private static Object interpret(List<?> parameters, List<?> body, Lookup scope, List<?> args) {
+    private static Object interpret(List<?> parameters, List<?> body, Scope parent, List<?> args) {
       if (parameters.size() != args.size()) {
         throw new IllegalArgumentException("wrong number of arguments " + args.size() + " expect " + parameters.size());
       }
-      Lookup lookup = new Lookup(scope);
+      Scope scope = new Scope(parent);
       for(int i = 0; i < parameters.size(); i++) {
-        lookup.put(parameters.get(i).toString(), args.get(i));
+        scope.put(parameters.get(i).toString(), args.get(i));
       }
       
-      Lookup savedLookup = ENV.get();
-      ENV.set(lookup);
+      Scope savedScope = ENV.get();
+      ENV.set(scope);
       Object result = null;
       try {
         for(Object instr: body) {
           result = eval(instr);
         }
       } finally {
-        ENV.set(savedLookup);
+        ENV.set(savedScope);
       }
       return result;
     }
@@ -488,7 +489,7 @@ public class CpLisp {
     }
   }
   
-  public static Object bsm(java.lang.invoke.MethodHandles.Lookup lookup, String name, Class<?> type, Object fun, Object... args) throws Throwable {
+  public static Object bsm(Lookup lookup, String name, Class<?> type, Object fun, Object... args) throws Throwable {
     return call(fun, Arrays.asList(args));
   }
   
