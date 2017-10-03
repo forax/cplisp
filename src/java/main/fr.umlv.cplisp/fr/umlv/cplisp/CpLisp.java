@@ -7,6 +7,7 @@ import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
 import static org.objectweb.asm.ClassWriter.COMPUTE_MAXS;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ACC_STATIC;
+import static org.objectweb.asm.Opcodes.ASM6;
 import static org.objectweb.asm.Opcodes.H_INVOKESTATIC;
 import static org.objectweb.asm.Opcodes.POP;
 import static org.objectweb.asm.Opcodes.RETURN;
@@ -38,41 +39,22 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.objectweb.asm.AnnotationVisitor;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Condy;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.commons.ClassRemapper;
+import org.objectweb.asm.commons.Remapper;
 
 public class CpLisp {
-  static class Scope {
-    final Scope parent;
-    private final HashMap<String, Object> map = new HashMap<>();
-    
-    public Scope(Scope parent) {
-      this.parent = parent;
-    }
-
-    public void put(String name, Object o) {
-      map.put(name, o);
-    }
-    
-    public Object get(String name) {
-      Scope scope = this;
-      do {
-        Object o = scope.map.get(name);
-        if (o != null) {
-          return o;
-        }
-        scope = scope.parent;
-      } while (scope != null);
-      return null;
-    }
-  }
-  
   static class Tokenizer {
     private final Reader reader;
     private final CharBuffer buffer = CharBuffer.allocate(8192);
@@ -140,6 +122,8 @@ public class CpLisp {
   }
   
   static class Parser {
+    static final Parser PARSER = new Parser(new Tokenizer(new InputStreamReader(System.in)));
+    
     private final Tokenizer tokenizer;
 
     public Parser(Tokenizer tokenizer) {
@@ -192,26 +176,42 @@ public class CpLisp {
   }
   
   static final String EOF = "";
-  private static final Parser PARSER = new Parser(new Tokenizer(new InputStreamReader(System.in)));
-  static final ThreadLocal<Scope> ENV;
+  static final ThreadLocal<Map<String, Object>> ENV;
   static {
-    Scope global = new Scope(null);
+    Map<String, Object> global = newScope(null);
     for(Method m: CpLisp.class.getMethods()) {
-      Builtin builtin = m.getAnnotation(Builtin.class);
-      if (builtin == null) {
+      if ((m.getModifiers() & (ACC_PUBLIC|ACC_STATIC)) != (ACC_PUBLIC|ACC_STATIC) || m.getName().equals("main")) {
         continue;
       }
       
+      // in compiled mode, we don't want dependency, so Builtin is renamed to Deprecated
+      String builtinName =
+        Optional.ofNullable(m.getAnnotation(Deprecated.class))
+          .map(Deprecated::since)
+          .orElseGet(() -> m.getAnnotation(Builtin.class).value());
+      
       MethodHandle mh = method(m);
       global.put(m.getName(), mh);
-      Optional.of(builtin.value()).filter(v -> !v.isEmpty()).ifPresent(name -> global.put(name, mh));
+      Optional.of(builtinName).filter(v -> !v.isEmpty()).ifPresent(name -> global.put(name, mh));
     }
-    ENV = new ThreadLocal<>() {
-      @Override
-      protected Scope initialValue() {
-        return new Scope(global);
+    ENV = ThreadLocal.withInitial(() -> newScope(global));
+  }
+  
+  static Map<String, Object> newScope(Map<String, Object> parent) {
+    HashMap<String, Object> map = new HashMap<>();
+    map.put("__parent", parent);
+    return map;
+  }
+  @SuppressWarnings("unchecked")
+  private static Object getInScope(Map<String, Object> scope, String name) {
+    do {
+      Object o = scope.get(name);
+      if (o != null) {
+        return o;
       }
-    };
+      scope = (Map<String, Object>)scope.get("__parent");
+    } while (scope != null);
+    return null;
   }
   
   private static MethodHandle[] accessors(Field field) {
@@ -242,7 +242,7 @@ public class CpLisp {
   }
   
   public static @Builtin Object read() {
-    return PARSER.parse(null);
+    return Parser.PARSER.parse(null);
   }
   
   private static String str(Object o) {
@@ -275,7 +275,7 @@ public class CpLisp {
     }
     if (o instanceof String) {
       String name = o.toString();
-      return Optional.ofNullable(ENV.get().get(name)).orElse(name);
+      return Optional.ofNullable(getInScope(ENV.get(), name)).orElse(name);
     }
     return o;
   }
@@ -291,46 +291,44 @@ public class CpLisp {
   public static @Builtin MethodHandle lambda(List<?> args) {
     List<?> parameters = (List<?>)args.get(0);
     List<?> body = args.stream().skip(1).collect(toList());
-    return Interpreter.asInterpret(parameters, body, ENV.get());
+    return asInterpret(parameters, body, ENV.get());
   }
   
-  static class Interpreter {
-    private static final MethodHandle INTERPRET;
-    static {
-      try {
-        INTERPRET = MethodHandles.lookup().findStatic(Interpreter.class, "interpret",
-            methodType(Object.class, List.class, List.class, Scope.class, List.class));
-      } catch (NoSuchMethodException | IllegalAccessException e) {
-        throw new AssertionError(e);
-      }
+  private static final MethodHandle INTERPRET;
+  static {
+    try {
+      INTERPRET = MethodHandles.lookup().findStatic(CpLisp.class, "interpret",
+          methodType(Object.class, List.class, List.class, Map.class, List.class));
+    } catch (NoSuchMethodException | IllegalAccessException e) {
+      throw new AssertionError(e);
     }
-    
-    static MethodHandle asInterpret(List<?> parameters, List<?> body, Scope scope) {
-      return MethodHandles.insertArguments(INTERPRET, 0, parameters, body, scope);
+  }
+
+  static MethodHandle asInterpret(List<?> parameters, List<?> body, Map<String, Object> scope) {
+    return MethodHandles.insertArguments(INTERPRET, 0, parameters, body, scope);
+  }
+
+  @SuppressWarnings("unused")
+  private static Object interpret(List<?> parameters, List<?> body, Map<String, Object> parent, List<?> args) {
+    if (parameters.size() != args.size()) {
+      throw new IllegalArgumentException("wrong number of arguments " + args.size() + " expect " + parameters.size());
     }
-    
-    @SuppressWarnings("unused")
-    private static Object interpret(List<?> parameters, List<?> body, Scope parent, List<?> args) {
-      if (parameters.size() != args.size()) {
-        throw new IllegalArgumentException("wrong number of arguments " + args.size() + " expect " + parameters.size());
-      }
-      Scope scope = new Scope(parent);
-      for(int i = 0; i < parameters.size(); i++) {
-        scope.put(parameters.get(i).toString(), args.get(i));
-      }
-      
-      Scope savedScope = ENV.get();
-      ENV.set(scope);
-      Object result = null;
-      try {
-        for(Object instr: body) {
-          result = eval(instr);
-        }
-      } finally {
-        ENV.set(savedScope);
-      }
-      return result;
+    Map<String, Object> scope = newScope(parent);
+    for(int i = 0; i < parameters.size(); i++) {
+      scope.put(parameters.get(i).toString(), args.get(i));
     }
+
+    Map<String, Object> savedScope = ENV.get();
+    ENV.set(scope);
+    Object result = null;
+    try {
+      for(Object instr: body) {
+        result = eval(instr);
+      }
+    } finally {
+      ENV.set(savedScope);
+    }
+    return result;
   }
   
   private static Object call(Object fun, List<?> args) {
@@ -338,7 +336,7 @@ public class CpLisp {
     
     if (fun instanceof String) {
       String funName = fun.toString();
-      fun = ENV.get().get(funName);
+      fun = getInScope(ENV.get(), funName);
       if (fun == null) {
         throw new RuntimeException("unknown function " + funName);
       }
@@ -362,48 +360,44 @@ public class CpLisp {
     }
   }
   
-  
-  
-  static class MultiCall {
-    static final MethodHandle MULTICALL;
-    static {
-      try {
-        MULTICALL = MethodHandles.lookup().findStatic(MultiCall.class, "multicall", MethodType.methodType(Object.class, List.class, MethodHandle[].class));
-      } catch (NoSuchMethodException | IllegalAccessException e) {
-        throw new AssertionError(e);
-      }
+  static final MethodHandle MULTICALL;
+  static {
+    try {
+      MULTICALL = MethodHandles.lookup().findStatic(CpLisp.class, "multicall", MethodType.methodType(Object.class, List.class, MethodHandle[].class));
+    } catch (NoSuchMethodException | IllegalAccessException e) {
+      throw new AssertionError(e);
     }
+  }
 
-    private static boolean isAssignableFrom(MethodType methodType, Class<?>[] argTypes) {
-      if (methodType.parameterCount() != argTypes.length) {
+  private static boolean isAssignableFrom(MethodType methodType, Class<?>[] argTypes) {
+    if (methodType.parameterCount() != argTypes.length) {
+      return false;
+    }
+    for(int i = 0; i < argTypes.length; i++) {
+      if (!methodType.parameterType(i).isAssignableFrom(argTypes[i])) {
         return false;
       }
-      for(int i = 0; i < argTypes.length; i++) {
-        if (!methodType.parameterType(i).isAssignableFrom(argTypes[i])) {
-          return false;
-        }
-      }
-      return true;
     }
-    
-    @SuppressWarnings("unused")  // called by a MethodHandle
-    private static Object multicall(List<?> args, MethodHandle[] mhs) throws Throwable {
-      Class<?>[] argTypes = new Class<?>[args.size()];
-      for(int  i = 0; i < args.size(); i++) {
-        Object arg = args.get(i);
-        argTypes[i] = (arg == null)? null: arg.getClass();
-      }
-      for(MethodHandle mh: mhs) {
-        if (isAssignableFrom(mh.type(), argTypes)) {
-          return mh.invokeWithArguments(args);
-        }
-      }
-      throw new WrongMethodTypeException(Arrays.toString(argTypes) + " incompatible with " + Arrays.toString(mhs));
+    return true;
+  }
+
+  @SuppressWarnings("unused")  // called by a MethodHandle
+  private static Object multicall(List<?> args, MethodHandle[] mhs) throws Throwable {
+    Class<?>[] argTypes = new Class<?>[args.size()];
+    for(int  i = 0; i < args.size(); i++) {
+      Object arg = args.get(i);
+      argTypes[i] = (arg == null)? null: arg.getClass();
     }
-    
-    static MethodHandle asMultiCallMH(MethodHandle[] mhs) {
-      return MethodHandles.insertArguments(MULTICALL, 1, new Object[] { mhs });
+    for(MethodHandle mh: mhs) {
+      if (isAssignableFrom(mh.type(), argTypes)) {
+        return mh.invokeWithArguments(args);
+      }
     }
+    throw new WrongMethodTypeException(Arrays.toString(argTypes) + " incompatible with " + Arrays.toString(mhs));
+  }
+
+  static MethodHandle asMultiCallMH(MethodHandle[] mhs) {
+    return MethodHandles.insertArguments(MULTICALL, 1, new Object[] { mhs });
   }
   
   public static @Builtin("import") void alias(String className, String alias) {
@@ -415,28 +409,28 @@ public class CpLisp {
     }
     
     // constructors
-    ENV.get().put(alias, MultiCall.asMultiCallMH(Arrays.stream(type.getConstructors()).map(CpLisp::constructor).toArray(MethodHandle[]::new)));
+    ENV.get().put(alias, asMultiCallMH(Arrays.stream(type.getConstructors()).map(CpLisp::constructor).toArray(MethodHandle[]::new)));
     
     // fields
-    Arrays.stream(type.getFields()).forEach(f -> ENV.get().put(alias + "-" + f.getName(), MultiCall.asMultiCallMH(CpLisp.accessors(f))));
+    Arrays.stream(type.getFields()).forEach(f -> ENV.get().put(alias + "-" + f.getName(), asMultiCallMH(CpLisp.accessors(f))));
     
     // methods
     Arrays.stream(type.getMethods()).collect(Collectors.groupingBy(m -> m.getName()))
-          .forEach((name, ms) -> ENV.get().put(alias + "-" + name, MultiCall.asMultiCallMH(ms.stream().map(CpLisp::method).toArray(MethodHandle[]::new))));
+          .forEach((name, ms) -> ENV.get().put(alias + "-" + name, asMultiCallMH(ms.stream().map(CpLisp::method).toArray(MethodHandle[]::new))));
   }
   
 
   static class Compiler {
-    private static final Handle BSM = new Handle(H_INVOKESTATIC, "fr/umlv/cplisp/CpLisp", "bsm",
-        "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", false);
+    static final String CPLISP_NAME = CpLisp.class.getName().replace('.', '/');
+    static final String BUILTIN_DESC = 'L' + Builtin.class.getName().replace('.', '/') + ';';
 
     /*private static Handle handle(String name) {
       Object o = ENV.get().get(name);
       MethodHandle mh = (MethodHandle)o;
-      return new Handle(H_INVOKESTATIC, "fr/umlv/cplisp/CpLisp", name, mh.type().toMethodDescriptorString(), false);
+      return new Handle(H_INVOKESTATIC, CPLISP_NAME, name, mh.type().toMethodDescriptorString(), false);
     }*/
 
-    private static Object constant(Object o) {
+    private static Object constant(Object o, Handle bsm) {
       String function;
       Stream<?> stream;
       if (o instanceof List) {
@@ -449,25 +443,67 @@ public class CpLisp {
           function = first.toString();
           stream = list.stream().skip(1);
         }
-        stream = stream.map(Compiler::constant);
+        stream = stream.map(v -> constant(v, bsm));
       } else {
         return o;
       }
-      return new Condy(function, "Ljava/lang/Object;", BSM, Stream.concat(Stream.of(function), stream).toArray());
+      return new Condy(function, "Ljava/lang/Object;", bsm, Stream.concat(Stream.of(function), stream).toArray());
     }
     
     static void compile(List<?> args) {
+      byte[] bytes;
+      try {
+        bytes = CpLisp.class.getClassLoader().getResourceAsStream(CPLISP_NAME + ".class").readAllBytes();
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+      
       String className = args.get(0).toString();
-      
-      
+      ClassReader reader = new ClassReader(bytes);
       ClassWriter writer = new ClassWriter(COMPUTE_MAXS | COMPUTE_FRAMES);
       writer.visit(V9, ACC_PUBLIC, className, null, "java/lang/Object", null);
-      MethodVisitor mv = writer.visitMethod(ACC_PUBLIC | ACC_STATIC, "main", "([Ljava/lang/String;)V", null, null);
+      
+      String classInternalName = className.replace('.', '/');
+      ClassVisitor cv = new ClassRemapper(writer, new Remapper() {
+        @Override
+        public String map(String typeName) {
+          return (typeName.equals(CPLISP_NAME))? classInternalName: typeName;
+        }
+      });
+      
+      reader.accept(new ClassVisitor(ASM6, cv) {
+        @Override
+        public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+          if (name.equals("main") && desc.equals("([Ljava/lang/String;)V")) {        // filter out REPL main
+            return null;
+          }
+          return new MethodVisitor(ASM6, super.visitMethod(access, name, desc, signature, exceptions)) {
+            @Override
+            public AnnotationVisitor visitAnnotation(String desc, boolean visible) { // rename Builtin to Deprecated
+              if (desc.equals(BUILTIN_DESC)) {
+                return new AnnotationVisitor(ASM6, super.visitAnnotation("Ljava/lang/Deprecated;", visible)) {
+                  @Override
+                  public void visit(String name, Object value) {
+                    super.visit("since", value);
+                  }
+                };
+              }
+              return super.visitAnnotation(desc, visible);
+            }
+          };
+        }
+      }, 0);
+      
+
+      Handle bsm = new Handle(H_INVOKESTATIC, classInternalName, "bsm",
+          "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", false);
+      
+      MethodVisitor mv = cv.visitMethod(ACC_PUBLIC | ACC_STATIC, "main", "([Ljava/lang/String;)V", null, null);
       mv.visitCode();
       
       for(int i = 1; i < args.size(); i++) {
         Object arg = args.get(i);
-        mv.visitLdcInsn(constant(List.of("eval", arg)));
+        mv.visitLdcInsn(constant(List.of("eval", arg), bsm));
         mv.visitInsn(POP);
       }
       
@@ -475,7 +511,7 @@ public class CpLisp {
       mv.visitMaxs(0, 0);
       mv.visitEnd();
       
-      writer.visitEnd();
+      cv.visitEnd();
       
       Path path = Paths.get(className + ".class");
       try {
@@ -487,7 +523,8 @@ public class CpLisp {
     }
   }
   
-  public static Object bsm(Lookup lookup, String name, Class<?> type, Object fun, Object... args) throws Throwable {
+  @SuppressWarnings("unused")  // called by the different condys
+  private static Object bsm(Lookup lookup, String name, Class<?> type, Object fun, Object... args) throws Throwable {
     return call(fun, new ArrayList<>(Arrays.asList(args)));
   }
   
