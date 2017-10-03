@@ -52,7 +52,7 @@ Using javap, you can see how the expressions are encoded in the constant pool
 
 ```
   ...
-    #14 = String             #13            // cplisp
+  #14 = String             #13            // cplisp
   #15 = Utf8               fr/umlv/cplisp/CpLisp
   #16 = Class              #15            // fr/umlv/cplisp/CpLisp
   #17 = Utf8               bsm
