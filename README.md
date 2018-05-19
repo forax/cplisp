@@ -22,6 +22,8 @@ You only need to run Maven once, after that you can use pro directly
   ./cplisp/bin/cplisp
 ```
 
+the builtin functions are read, print, eval, +, def, lambda, import and compile.
+
 # how to compile a script as a Java class
 first run cplisp, then ask to compile with the function compile
 ```
