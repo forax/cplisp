@@ -13,3 +13,5 @@ install:
 script:
   - ./pro/bin/pro version
   - ./pro/bin/pro
+  - echo "(compile foo (print (+ 40 2)))" | ./cplisp/bin/cplisp
+  - ./pro/bin/foo

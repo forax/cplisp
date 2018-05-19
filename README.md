@@ -2,8 +2,9 @@
 A Lisp that is able to compile part of itself into the constant pool of a Java .class
 
 It uses the new constant dynamic (condy) constant pool constant,
-so if you want to run a .class, you need to get an early access build of jdk 11,
-you can download it at http://jdk.java.net/11/ 
+so if you want to run a .class, you need either to get an early access build of jdk 11,
+you can download it at http://jdk.java.net/11/ or you can use pro (see below) that embeds
+its own jdk. 
 
 # how to build it
 I use pro to build the project, Maven can be used to download and run pro, so
@@ -18,7 +19,7 @@ You only need to run Maven once, after that you can use pro
 
 # how to run cplisp
 ```
-  /path/to/jdk11/bin/java --module-path target/main/artifact:deps -m fr.umlv.cplisp
+  ./cplisp/bin/cplisp
 ```
 
 # how to compile a script as a Java class
@@ -28,9 +29,13 @@ first run cplisp, then ask to compile with the function compile
 ```
 it will create a self contained class foo.class on the disk
 
-then you can run the generated foo.class like this
+then you can run the generated foo.class either using the jdk 11
 ```
   /path/to/jdk11/bin/java foo
+```
+or using pro (which embeds its own jdk)
+```
+  ./pro/bin/java foo
 ```
 
 Using javap, you can see how the expressions are encoded in the constant pool

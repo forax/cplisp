@@ -1,5 +1,12 @@
 import static com.github.forax.pro.Pro.*;
 import static com.github.forax.pro.builder.Builders.*;
+import static java.nio.file.Files.*;
+import static com.github.forax.pro.helper.FileHelper.*;
+
+var distribute = command(unchecked(() -> {
+  move(location("target/image/bin/com.github.forax.cplisp"), location("target/image/bin/cplisp"));
+  move(location("target/image"), location("cplisp"));
+}));
 
 resolver.
     //checkForUpdate(true).
@@ -17,7 +24,7 @@ packager.
     modules(list(
         "com.github.forax.cplisp@1.1/com.github.forax.cplisp.CpLisp"
     ))   
-    
-run(resolver, modulefixer, compiler, packager)
+       
+run(resolver, modulefixer, compiler, packager, linker, distribute)
 
 /exit
