@@ -11,10 +11,11 @@ I use pro to build the project, Maven can be used to download and run pro, so
 ```
   mvn install
 ```
+it will pack the Java VM and cplisp inside a folder cplisp.
 
 You only need to run Maven once, after that you can use pro 
 ```
-./pro/bin/pro
+  ./pro/bin/pro
 ```
 
 # how to run cplisp
