@@ -21,8 +21,10 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 
-# do not publish geenrated classes
+# do not publish generated classes
 target
+
+bin
 /pro/
 /deps/
 /cplisp/
