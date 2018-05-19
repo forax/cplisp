@@ -1,4 +1,4 @@
-package fr.umlv.cplisp;
+package com.github.forax.cplisp;
 
 import static java.lang.invoke.MethodType.methodType;
 import static java.util.stream.Collectors.joining;
@@ -8,10 +8,11 @@ import static org.objectweb.asm.ClassWriter.COMPUTE_MAXS;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ACC_STATIC;
 import static org.objectweb.asm.Opcodes.ASM6;
+import static org.objectweb.asm.Opcodes.ASM7_EXPERIMENTAL;
 import static org.objectweb.asm.Opcodes.H_INVOKESTATIC;
 import static org.objectweb.asm.Opcodes.POP;
 import static org.objectweb.asm.Opcodes.RETURN;
-import static org.objectweb.asm.Opcodes.V9;
+import static org.objectweb.asm.Opcodes.V11;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -48,12 +49,13 @@ import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Condy;
+import org.objectweb.asm.ConstantDynamic;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.commons.ClassRemapper;
 import org.objectweb.asm.commons.Remapper;
 
+@SuppressWarnings("deprecation") // usage of ASM experimental APIs
 public class CpLisp {
   static class Tokenizer {
     private final Reader reader;
@@ -135,7 +137,7 @@ public class CpLisp {
       
       try {
         return Integer.parseInt(token);
-      } catch(NumberFormatException e) {
+      } catch(@SuppressWarnings("unused") NumberFormatException e) {
         return token;
       }
     }
@@ -219,9 +221,8 @@ public class CpLisp {
     try {
       if (Modifier.isFinal(field.getModifiers())) {
         return new MethodHandle[] { lookup.unreflectGetter(field) };
-      } else {
-        return new MethodHandle[] { lookup.unreflectGetter(field), lookup.unreflectSetter(field) };
       }
+      return new MethodHandle[] { lookup.unreflectGetter(field), lookup.unreflectSetter(field) };
     } catch (IllegalAccessException e) {
       throw (IllegalAccessError)new IllegalAccessError().initCause(e);
     }
@@ -447,7 +448,7 @@ public class CpLisp {
       } else {
         return o;
       }
-      return new Condy(function, "Ljava/lang/Object;", bsm, Stream.concat(Stream.of(function), stream).toArray());
+      return new ConstantDynamic(function, "Ljava/lang/Object;", bsm, Stream.concat(Stream.of(function), stream).toArray());
     }
     
     static void compile(List<?> args) {
@@ -461,23 +462,28 @@ public class CpLisp {
       String className = args.get(0).toString();
       ClassReader reader = new ClassReader(bytes);
       ClassWriter writer = new ClassWriter(COMPUTE_MAXS | COMPUTE_FRAMES);
-      writer.visit(V9, ACC_PUBLIC, className, null, "java/lang/Object", null);
+      writer.visit(V11, ACC_PUBLIC, className, null, "java/lang/Object", null);
       
       String classInternalName = className.replace('.', '/');
-      ClassVisitor cv = new ClassRemapper(writer, new Remapper() {
+      ClassVisitor cv = new ClassRemapper(ASM7_EXPERIMENTAL, writer, new Remapper() {
         @Override
         public String map(String typeName) {
           return (typeName.equals(CPLISP_NAME))? classInternalName: typeName;
         }
-      });
+      }) { /* empty */ };
       
-      reader.accept(new ClassVisitor(ASM6, cv) {
+      reader.accept(new ClassVisitor(ASM7_EXPERIMENTAL, cv) {
+        @Override
+        public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+          // filter out class info
+        }
+        
         @Override
         public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
           if (name.equals("main") && desc.equals("([Ljava/lang/String;)V")) {        // filter out REPL main
             return null;
           }
-          return new MethodVisitor(ASM6, super.visitMethod(access, name, desc, signature, exceptions)) {
+          return new MethodVisitor(ASM7_EXPERIMENTAL, super.visitMethod(access, name, desc, signature, exceptions)) {
             @Override
             public AnnotationVisitor visitAnnotation(String desc, boolean visible) { // rename Builtin to Deprecated
               if (desc.equals(BUILTIN_DESC)) {
@@ -523,7 +529,7 @@ public class CpLisp {
     }
   }
   
-  @SuppressWarnings("unused")  // called by the different condys
+  @SuppressWarnings("unused")  // called by the different constant dynamics
   private static Object bsm(Lookup lookup, String name, Class<?> type, Object fun, Object... args) throws Throwable {
     return call(fun, new ArrayList<>(Arrays.asList(args)));
   }
