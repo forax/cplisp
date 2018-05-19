@@ -2,9 +2,8 @@
 A Lisp that is able to compile part of itself into the constant pool of a Java .class
 
 It uses the new constant dynamic (condy) constant pool constant,
-so if you want to run a .class, you need either to get an early access build of jdk 11,
-you can download it at http://jdk.java.net/11/ or you can use pro (see below) that embeds
-its own jdk. 
+so if you want to run the generated classfile, you need either to get an early access build of jdk 11,
+you can download it at http://jdk.java.net/11/ or you can use pro that embeds its own jdk (see below). 
 
 # how to build it
 I use pro to build the project, Maven can be used to download and run pro, so
