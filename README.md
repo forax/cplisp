@@ -2,8 +2,8 @@
 A Lisp that is able to compile part of itself into the constant pool of a Java .class
 
 It uses the new constant dynamic (condy) constant pool constant,
-so if you want to run a .class, you need either to get an early access build of jdk 11,
-you can download it at http://jdk.java.net/11/, or use pro (see below).  
+so if you want to run a .class, you need to get an early access build of jdk 11,
+you can download it at http://jdk.java.net/11/ 
 
 # how to build it
 I use pro to build the project, Maven can be used to download and run pro, so
@@ -14,11 +14,6 @@ I use pro to build the project, Maven can be used to download and run pro, so
 You only need to run Maven once, after that you can use pro 
 ```
 ./pro/bin/pro
-```
-
-Pro embeds it's own JDK, so you can use pro as a JDK if you do not want to download a jdk 11 and run java using
-```
-./pro/bin/java
 ```
 
 # how to run cplisp
