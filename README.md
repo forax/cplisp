@@ -12,7 +12,7 @@ I use pro to build the project, Maven can be used to download and run pro, so
 ```
 it will pack the Java VM and cplisp inside a folder cplisp.
 
-You only need to run Maven once, after that you can use pro 
+You only need to run Maven once, after that you can use pro directly
 ```
   ./pro/bin/pro
 ```
@@ -87,7 +87,7 @@ Which mean that the execution of any functions is considered as side effect free
 ```
   (compile foo (def a 5) (print a) (def a 7) (print a))
 ```
-because the second call to (print a) will return the previously calculated value of (print a).
+because the second call to (print a) will return the previously calculated value of (print a) without calling print.
 
 So this semantics will only work well for lisps like Clojure that disallow side effect.
 The other solution is to change the compiler to generate a new constant if there is a side effect,
