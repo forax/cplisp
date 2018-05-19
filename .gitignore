@@ -28,3 +28,7 @@ bin
 /pro/
 /deps/
 /cplisp/
+
+/.settings/
+.project
+.classpath
