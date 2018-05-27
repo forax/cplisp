@@ -3,11 +3,11 @@ import static com.github.forax.pro.builder.Builders.*;
 import static java.nio.file.Files.*;
 import static com.github.forax.pro.helper.FileHelper.*;
 
-var distribute = command(unchecked(() -> {
+var distribute = command(() -> {
   deleteAllFiles(location("cplisp"), true);
   move(location("target/image/bin/com.github.forax.cplisp"), location("target/image/bin/cplisp"));
   move(location("target/image"), location("cplisp"));
-}));
+});
 
 resolver.
     //checkForUpdate(true).
