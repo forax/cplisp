@@ -92,6 +92,10 @@ class pro_wrapper {
     return "/bin/sh";
   }
   
+  private static String userHome() {
+    return System.getProperty("user.home");
+  }
+  
   private static void unpack(Path localPath, Path folder) throws IOException {
     System.out.println("unpack pro to " + folder);
     createDirectories(folder);
@@ -153,7 +157,7 @@ class pro_wrapper {
     var release = lastestReleaseVersion().orElseThrow(() -> new IOException("latest release not found on Github"));
     var filename = "pro-" + platform() + ".zip";
     
-    var cachePath = Paths.get(".pro", "cache", release, filename);
+    var cachePath = Paths.get(userHome(), ".pro", "cache", release, filename);
     if (!exists(cachePath)) {
       download(release, filename, cachePath);
     }
