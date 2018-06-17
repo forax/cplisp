@@ -31,8 +31,8 @@ import java.util.stream.Stream;
 import java.util.zip.ZipFile;
 
 class pro_wrapper {
-  private static final String GITHUB_API_RELEASES = "https://api.github.com/repos/forax/pro/releases";
-  private static final String GITHUB_DOWNLOAD = "https://github.com/forax/pro/releases/download";
+  private static final String GITHUB_API_RELEASES = "http://api.github.com/repos/forax/pro/releases";
+  private static final String GITHUB_DOWNLOAD = "http://github.com/forax/pro/releases/download";
   private static final Pattern PATTERN = Pattern.compile("\"tag_name\":\"([^\"]+)\"");
   
   private static String platform() {
