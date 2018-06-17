@@ -3,6 +3,13 @@ dist: trusty
 language: java
 jdk: openjdk-ea
 
+matrix:
+  include:
+    - env: PLATFORM='linux'
+
+    - env: PLATFORM='macos'
+      os: osx
+
 # https://github.com/travis-ci/travis-ci/issues/8408
 before_install:
   - unset _JAVA_OPTIONS
