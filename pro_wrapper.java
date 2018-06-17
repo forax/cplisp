@@ -35,40 +35,6 @@ class pro_wrapper {
   private static final String GITHUB_DOWNLOAD = "https://github.com/forax/pro/releases/download";
   private static final Pattern PATTERN = Pattern.compile("\"tag_name\":\"([^\"]+)\"");
   
-  private static Optional<String> lastestReleaseVersion() throws IOException {
-    var url = new URL(GITHUB_API_RELEASES);
-    try(var input = url.openStream();
-        var reader = new InputStreamReader(input, StandardCharsets.UTF_8);
-        var buffered = new BufferedReader(reader, 8192)) {
-      return buffered.lines()
-        .flatMap(line -> Optional.of(PATTERN.matcher(line)).filter(Matcher::find).map(matcher -> matcher.group(1)).stream())
-        .findFirst();
-    }
-  }
-  
-  private static void download(String release, String filename, Path path) throws IOException {
-    var url = new URL(GITHUB_DOWNLOAD + "/"+ release + "/" + filename);
-    System.out.println("download " + url);
-    
-    createDirectories(path.getParent());
-    try(var input = url.openStream();
-        var output = newOutputStream(path)) {
-      int read;
-      var sum = 0;
-      var buffer = new byte[8192];
-      while((read = input.read(buffer)) != -1) {
-        output.write(buffer, 0, read);
-        
-        sum += read;
-        if (sum >= 1_000_000) {
-          System.out.print(".");
-          sum = 0;
-        }
-      }
-    }
-    System.out.println("");
-  }
-  
   private static String platform() {
     var osName = getProperty("os.name").toLowerCase();
     if (osName.indexOf("win") != -1) {
@@ -94,6 +60,40 @@ class pro_wrapper {
   
   private static String userHome() {
     return System.getProperty("user.home");
+  }
+  
+  private static Optional<String> lastestReleaseVersion() throws IOException {
+    var url = new URL(GITHUB_API_RELEASES);
+    try(var input = url.openStream();
+        var reader = new InputStreamReader(input, StandardCharsets.UTF_8);
+        var buffered = new BufferedReader(reader, 8192)) {
+      return buffered.lines()
+        .flatMap(line -> Optional.of(PATTERN.matcher(line)).filter(Matcher::find).map(matcher -> matcher.group(1)).stream())
+        .findFirst();
+    }
+  }
+  
+  private static void download(String release, String filename, Path path) throws IOException {
+    var url = new URL(GITHUB_DOWNLOAD + "/"+ release + "/" + filename);
+    System.out.println("download " + url + " to " + path);
+    
+    createDirectories(path.getParent());
+    try(var input = url.openStream();
+        var output = newOutputStream(path)) {
+      int read;
+      var sum = 0;
+      var buffer = new byte[8192];
+      while((read = input.read(buffer)) != -1) {
+        output.write(buffer, 0, read);
+        
+        sum += read;
+        if (sum >= 1_000_000) {
+          System.out.print(".");
+          sum = 0;
+        }
+      }
+    }
+    System.out.println("");
   }
   
   private static void unpack(Path localPath, Path folder) throws IOException {
