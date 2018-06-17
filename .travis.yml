@@ -1,17 +1,16 @@
 sudo: false
 dist: trusty
 language: java
+jdk: openjdk-ea
 
 # https://github.com/travis-ci/travis-ci/issues/8408
 before_install:
   - unset _JAVA_OPTIONS
 
 install:
-  - wget --no-check-certificate https://github.com/forax/pro/releases/download/0.10-17/pro-linux-early-access.zip
-  - unzip pro-linux-early-access.zip
+  - java pro_wrapper.java version
 
 script:
-  - ./pro/bin/pro version
   - ./pro/bin/pro
   - echo "(compile foo (print (+ 40 2)))" | ./cplisp/bin/cplisp
-  - ./pro/bin/java foo
+  - java foo
