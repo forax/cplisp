@@ -7,11 +7,6 @@ matrix:
   include:
     - env:
       - PLATFORM='linux'
-    - env:
-      - PLATFORM='macos'
-      os: osx
-    - env:
-      - PLATFORM='linux'
       - PRO_EARLY_ACCESS='true'
     - env:
       - PLATFORM='macos'
@@ -26,10 +21,8 @@ before_install:
 
 install:
   - java pro_wrapper.java version
-  - pwd
-  - ./pro/bin/java --version
 
 script:
-  - ./pro/bin/pro
+  - ./pro/bin/java build.java
   - echo "(compile foo (print (+ 40 2)))" | ./cplisp/bin/cplisp
   - java foo
