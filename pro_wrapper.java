@@ -3,12 +3,16 @@ import static java.lang.System.getProperty;
 import static java.nio.file.Files.createDirectories;
 import static java.nio.file.Files.delete;
 import static java.nio.file.Files.exists;
+import static java.nio.file.Files.getPosixFilePermissions;
 import static java.nio.file.Files.list;
 import static java.nio.file.Files.newOutputStream;
 import static java.nio.file.Files.readAllLines;
 import static java.nio.file.Files.setPosixFilePermissions;
 import static java.nio.file.Files.walkFileTree;
 import static java.nio.file.Files.write;
+import static java.nio.file.attribute.PosixFilePermission.GROUP_EXECUTE;
+import static java.nio.file.attribute.PosixFilePermission.OTHERS_EXECUTE;
+import static java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,15 +20,18 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -69,7 +76,6 @@ class pro_wrapper {
         var buffered = new BufferedReader(reader, 8192)) {
       return buffered.lines()
         .flatMap(line -> Optional.of(PATTERN.matcher(line)).filter(Matcher::find).map(matcher -> matcher.group(1)).stream())
-        .peek(System.err::println)
         .findFirst();
     }
   }
@@ -115,8 +121,11 @@ class pro_wrapper {
     }
     
     // make the command in pro/bin executable
-    var permissions = PosixFilePermissions.fromString("rwxr-xr-x");
     for(var cmd: (Iterable<Path>)list(folder.resolve("pro").resolve("bin"))::iterator) {
+      System.out.println("set " + cmd + " executable");
+      
+      Set<PosixFilePermission> permissions = getPosixFilePermissions(cmd);
+      Collections.addAll(permissions, OWNER_EXECUTE, GROUP_EXECUTE, OTHERS_EXECUTE);
       setPosixFilePermissions(cmd, permissions);
     }
   }
