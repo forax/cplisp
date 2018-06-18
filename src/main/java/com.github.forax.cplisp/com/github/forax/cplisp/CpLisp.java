@@ -206,13 +206,14 @@ public class CpLisp {
   }
   @SuppressWarnings("unchecked")
   private static Object getInScope(Map<String, Object> scope, String name) {
+    Map<String, Object> map = scope;
     do {
-      Object o = scope.get(name);
+      Object o = map.get(name);
       if (o != null) {
         return o;
       }
-      scope = (Map<String, Object>)scope.get("__parent");
-    } while (scope != null);
+      map = (Map<String, Object>)scope.get("__parent");
+    } while (map != null);
     return null;
   }
   
