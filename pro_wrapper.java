@@ -31,9 +31,9 @@ import java.util.stream.Stream;
 import java.util.zip.ZipFile;
 
 class pro_wrapper {
-  private static final String GITHUB_API_RELEASES = "https://api.github.com/repos/forax/pro/releases";
+  private static final String GITHUB_API_RELEASES = "https://github.com/forax/pro/releases";
   private static final String GITHUB_DOWNLOAD = "https://github.com/forax/pro/releases/download";
-  private static final Pattern PATTERN = Pattern.compile("\"tag_name\":\"([^\"]+)\"");
+  private static final Pattern PATTERN = Pattern.compile("tag/([^\"]+)\"");
   
   private static String platform() {
     var osName = getProperty("os.name").toLowerCase();
@@ -69,6 +69,7 @@ class pro_wrapper {
         var buffered = new BufferedReader(reader, 8192)) {
       return buffered.lines()
         .flatMap(line -> Optional.of(PATTERN.matcher(line)).filter(Matcher::find).map(matcher -> matcher.group(1)).stream())
+        .peek(System.err::println)
         .findFirst();
     }
   }
