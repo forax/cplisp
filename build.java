@@ -1,5 +1,3 @@
-#!pro/bin/java
-
 import static com.github.forax.pro.Pro.*;
 import static com.github.forax.pro.builder.Builders.*;
 import static java.nio.file.Files.*;
