@@ -23,6 +23,6 @@ install:
   - java pro_wrapper.java version
 
 script:
-  - ./build.java
+  - sh ./build.java
   - echo "(compile foo (print (+ 40 2)))" | ./cplisp/bin/cplisp
   - java foo
