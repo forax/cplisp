@@ -20,13 +20,11 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -63,6 +61,10 @@ class pro_wrapper {
       return shell;
     }
     return "/bin/sh";
+  }
+  
+  private static boolean earlyAccess() {
+    return Boolean.parseBoolean(System.getenv("PRO_EARLY_ACCESS"));
   }
   
   private static String userHome() {
@@ -165,7 +167,8 @@ class pro_wrapper {
   
   private static int installAndRun(String[] args) throws IOException {
     var release = lastestReleaseVersion().orElseThrow(() -> new IOException("latest release not found on Github"));
-    var filename = "pro-" + platform() + ".zip";
+    var earlyAccess = earlyAccess()? "-early-access": "";
+    var filename = "pro-" + platform() + earlyAccess + ".zip";
     
     var cachePath = Paths.get(userHome(), ".pro", "cache", release, filename);
     if (!exists(cachePath)) {

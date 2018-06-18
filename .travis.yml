@@ -5,9 +5,13 @@ jdk: openjdk-ea
 
 matrix:
   include:
-    - env: PLATFORM='linux'
+    - env:
+      - PLATFORM='linux'
+      - PRO_EARLY_ACCESS='true'
 
-    - env: PLATFORM='macos'
+    - env:
+      - PLATFORM='macos'
+      - PRO_EARLY_ACCESS='true'
       os: osx
 
 # https://github.com/travis-ci/travis-ci/issues/8408
