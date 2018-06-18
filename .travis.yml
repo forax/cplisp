@@ -16,6 +16,8 @@ before_install:
 
 install:
   - java pro_wrapper.java version
+  - pwd
+  - ./pro/bin/java --version
 
 script:
   - ./pro/bin/pro
