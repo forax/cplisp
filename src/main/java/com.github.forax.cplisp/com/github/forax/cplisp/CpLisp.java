@@ -335,17 +335,20 @@ public class CpLisp {
   private static Object call(Object fun, List<?> args) {
     //System.out.println("call: " + fun + " " + o);
     
+    Object function;
     if (fun instanceof String) {
       String funName = fun.toString();
-      fun = getInScope(ENV.get(), funName);
-      if (fun == null) {
+      function = getInScope(ENV.get(), funName);
+      if (function == null) {
         throw new RuntimeException("unknown function " + funName);
       }
+    } else {
+      function = fun;
     }
-    if (!(fun instanceof MethodHandle)) {
-      throw new RuntimeException(fun + " is not a function ");
+    if (!(function instanceof MethodHandle)) {
+      throw new RuntimeException(function + " is not a function ");
     }
-    MethodHandle mh = (MethodHandle)fun;
+    MethodHandle mh = (MethodHandle)function;
     
     //System.out.println("call: found " + mh);
     
