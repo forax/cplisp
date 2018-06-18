@@ -17,10 +17,8 @@ matrix:
       - PLATFORM='macos'
       - PRO_EARLY_ACCESS='true'
       os: osx
-
-matrix:
   allow_failures:
-     - os: osx
+    - os: osx
 
 # https://github.com/travis-ci/travis-ci/issues/8408
 before_install:
