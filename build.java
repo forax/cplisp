@@ -29,6 +29,6 @@ class build {
         "com.github.forax.cplisp@1.1/com.github.forax.cplisp.CpLisp"
       );   
 
-    run(resolver, modulefixer, compiler, packager, linker, distribute);
+    run(resolver, compiler, packager, linker, distribute);
 
 }}
