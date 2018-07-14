@@ -1,16 +1,14 @@
 sudo: false
 dist: trusty
 language: java
-jdk: openjdk-ea
+jdk: openjdk11
 
 matrix:
   include:
     - env:
       - PLATFORM='linux'
-      - PRO_SPECIAL_BUILD='early-access'
     - env:
       - PLATFORM='macos'
-      - PRO_SPECIAL_BUILD='early-access'
       os: osx
   allow_failures:
     - os: osx
