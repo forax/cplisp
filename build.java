@@ -6,7 +6,7 @@ import static com.github.forax.pro.helper.FileHelper.*;
 class build {
   public static void main(String[] args) {
 
-    var distribute = command(() -> {
+    var distribute = command("distribute", () -> {
       deleteAllFiles(location("cplisp"), true);
       move(location("target/image/bin/com.github.forax.cplisp"), location("target/image/bin/cplisp"));
       move(location("target/image"), location("cplisp"));
