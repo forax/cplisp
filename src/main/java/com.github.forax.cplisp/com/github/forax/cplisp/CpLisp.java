@@ -8,7 +8,7 @@ import static org.objectweb.asm.ClassWriter.COMPUTE_MAXS;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ACC_STATIC;
 import static org.objectweb.asm.Opcodes.ASM6;
-import static org.objectweb.asm.Opcodes.ASM7_EXPERIMENTAL;
+import static org.objectweb.asm.Opcodes.ASM7;
 import static org.objectweb.asm.Opcodes.H_INVOKESTATIC;
 import static org.objectweb.asm.Opcodes.POP;
 import static org.objectweb.asm.Opcodes.RETURN;
@@ -469,14 +469,14 @@ public class CpLisp {
       writer.visit(V11, ACC_PUBLIC, className, null, "java/lang/Object", null);
       
       String classInternalName = className.replace('.', '/');
-      ClassVisitor cv = new ClassRemapper(ASM7_EXPERIMENTAL, writer, new Remapper() {
+      ClassVisitor cv = new ClassRemapper(ASM7, writer, new Remapper() {
         @Override
         public String map(String typeName) {
           return (typeName.equals(CPLISP_NAME))? classInternalName: typeName;
         }
       }) { /* empty */ };
       
-      reader.accept(new ClassVisitor(ASM7_EXPERIMENTAL, cv) {
+      reader.accept(new ClassVisitor(ASM7, cv) {
         @Override
         public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
           // filter out class info
@@ -487,7 +487,7 @@ public class CpLisp {
           if (name.equals("main") && desc.equals("([Ljava/lang/String;)V")) {        // filter out REPL main
             return null;
           }
-          return new MethodVisitor(ASM7_EXPERIMENTAL, super.visitMethod(access, name, desc, signature, exceptions)) {
+          return new MethodVisitor(ASM7, super.visitMethod(access, name, desc, signature, exceptions)) {
             @Override
             public AnnotationVisitor visitAnnotation(String desc, boolean visible) { // rename Builtin to Deprecated
               if (desc.equals(BUILTIN_DESC)) {
