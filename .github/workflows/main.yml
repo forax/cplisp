@@ -1,0 +1,26 @@
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v1
+        with:
+          java-version: '11'
+
+      - name: install
+        run: java pro_wrapper.java version
+
+      - name: build
+        run: |
+          ./pro/bin/java build.java
+          echo "(compile foo (print (+ 40 2)))" | ./cplisp/bin/cplisp
+          java foo
