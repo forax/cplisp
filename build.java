@@ -17,11 +17,11 @@ class build {
       //remoteRepositories(uri("https://repository.ow2.org/nexus/content/repositories/snapshots")).
       dependencies(
         // ASM
-        "org.objectweb.asm:7.1",
-        "org.objectweb.asm.tree:7.1",
-        "org.objectweb.asm.tree.analysis:7.1",
-        "org.objectweb.asm.util:7.1",
-        "org.objectweb.asm.commons:7.1"
+        "org.objectweb.asm:9.0",
+        "org.objectweb.asm.tree:9.0",
+        "org.objectweb.asm.tree.analysis:9.0",
+        "org.objectweb.asm.util:9.0",
+        "org.objectweb.asm.commons:9.0"
       );
 
     packager.
